@@ -28,4 +28,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: NX-FanControl-Package
-          path: out/
+          path: |
+            out/
+            sysmodule/sysmodule.elf
+            sysmodule/sysmodule.nsp
+            overlay/overlay.elf
+            overlay/overlay.ovl
+            lib/libfancontrol/libfancontrol.a
+          include-hidden-files: true
+          if-no-files-found: warn
