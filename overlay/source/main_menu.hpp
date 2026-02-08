@@ -11,7 +11,6 @@ private:
 
 public:
     MainMenu();
-
     virtual tsl::elm::Element* createUI() override;
     virtual void update() override;
 };
