@@ -1,17 +1,25 @@
 #include "main_menu.hpp"
+#include "select_menu.hpp"
 
-MainMenu::MainMenu()
-{
+MainMenu::MainMenu() {
     ReadConfigFile(&this->_fanCurveTable);
-    this->_enabledBtn = new tsl::elm::ToggleListItem("Enabled", (IsRunning() != 0));
+
+    this->_p0Label = new tsl::elm::ListItem("");
+    this->_p1Label = new tsl::elm::ListItem("");
+    this->_p2Label = new tsl::elm::ListItem("");
+    this->_p3Label = new tsl::elm::ListItem("");
+    this->_p4Label = new tsl::elm::ListItem("");
+    
+    this->update(); 
 }
 
-tsl::elm::Element* MainMenu::createUI()
-{
+tsl::elm::Element* MainMenu::createUI() {
     auto frame = new tsl::elm::OverlayFrame("FAN CONTROL", "v1.0.3");
     auto list = new tsl::elm::List();
 
     // 1. Service Toggle
+    bool running = (IsRunning() != 0);
+    this->_enabledBtn = new tsl::elm::ToggleListItem("Enabled", running);
     this->_enabledBtn->setStateChangedListener([](bool state) {
         if (state) {
             CreateB2F();
@@ -26,48 +34,43 @@ tsl::elm::Element* MainMenu::createUI()
     });
     list->addItem(this->_enabledBtn);
 
-    // 2. Sliders
-    // We use simple labels and the slider below it
-    const char* temps[5] = {"0°C", "40°C", "45°C", "60°C", "100°C"};
-
-    for (int i = 0; i < 5; i++)
-    {
-        TemperaturePoint* p = &this->_fanCurveTable[i];
-
-        // The requested graphical change: Label is just the Temperature
-        auto label = new tsl::elm::ListItem(temps[i]);
-        list->addItem(label);
-
-        // We use 50 steps for 2% increments
-        auto slider = new tsl::elm::StepTrackBar("", 50);
-        slider->setProgress((int)(p->fanLevel_f * 100) / 2);
-        
-        slider->setValueChangedListener([p](u8 v){
-            p->fanLevel_f = (float)(v * 2) / 100.0f;
-        });
-
-        list->addItem(slider);
-    }
-
-    // 3. Save & Apply
-    auto saveBtn = new tsl::elm::ListItem("Save & Apply");
-    saveBtn->setClickListener([this](uint64_t keys) {
-        if (keys & HidNpadButton_A) {
-            WriteConfigFile(this->_fanCurveTable);
-            if(IsRunning() != 0) {
-                pmshellTerminateProgram(SysFanControlID);
-                const NcmProgramLocation loc{ .program_id = SysFanControlID, .storageID = NcmStorageId_None };
-                u64 pid = 0;
-                pmshellLaunchProgram(0, &loc, &pid);
-            }
-            return true;
+    // 2. MASTER SLIDER
+    list->addItem(new tsl::elm::CategoryHeader("Master Control"));
+    auto masterSlider = new tsl::elm::StepTrackBar("All Points", 50); 
+    masterSlider->setValueChangedListener([this](u8 v) {
+        float newLevel = (float)(v * 2) / 100.0f;
+        for (int i = 0; i < 5; i++) {
+            this->_fanCurveTable[i].fanLevel_f = newLevel;
         }
-        return false;
+        this->_tableIsChanged = true;
     });
-    list->addItem(saveBtn);
+    list->addItem(masterSlider);
+
+    // 3. RESTORED OLD MENU (Individual Points)
+    list->addItem(new tsl::elm::CategoryHeader("Individual Points"));
+    
+    auto labels = { _p0Label, _p1Label, _p2Label, _p3Label, _p4Label };
+    int i = 0;
+    for (auto label : labels) {
+        label->setClickListener([this, i](uint64_t keys) {
+            if (keys & HidNpadButton_A) {
+                tsl::changeTo<SelectMenu>(i, this->_fanCurveTable, &this->_tableIsChanged);
+                return true;
+            }
+            return false;
+        });
+        list->addItem(label);
+        i++;
+    }
 
     frame->setContent(list);
     return frame;
 }
 
-void MainMenu::update() {}
+void MainMenu::update() {
+    this->_p0Label->setText("0C   -> " + std::to_string((int)(this->_fanCurveTable[0].fanLevel_f * 100)) + "%");
+    this->_p1Label->setText("40C  -> " + std::to_string((int)(this->_fanCurveTable[1].fanLevel_f * 100)) + "%");
+    this->_p2Label->setText("45C  -> " + std::to_string((int)(this->_fanCurveTable[2].fanLevel_f * 100)) + "%");
+    this->_p3Label->setText("60C  -> " + std::to_string((int)(this->_fanCurveTable[3].fanLevel_f * 100)) + "%");
+    this->_p4Label->setText("100C -> " + std::to_string((int)(this->_fanCurveTable[4].fanLevel_f * 100)) + "%");
+}
