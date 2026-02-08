@@ -144,6 +144,3 @@ void MainMenu::update()
         this->_tableIsChanged = false;
     }
 }
-
-}
-
