@@ -1,22 +1,17 @@
 #include "main_menu.hpp"
 
-MainMenu::MainMenu()
-{
+MainMenu::MainMenu() {
     ReadConfigFile(&this->_fanCurveTable);
-
     bool running = (IsRunning() != 0);
     this->_enabledBtn = new tsl::elm::ToggleListItem("Enabled", running);
 }
 
-tsl::elm::Element* MainMenu::createUI()
-{
+tsl::elm::Element* MainMenu::createUI() {
     auto frame = new tsl::elm::OverlayFrame("FAN CONTROL", "v1.0.3");
     auto list = new tsl::elm::List();
 
-    this->_enabledBtn->setStateChangedListener([this](bool state)
-    {
-        if (state)
-        {
+    this->_enabledBtn->setStateChangedListener([this](bool state) {
+        if (state) {
             CreateB2F();
             const NcmProgramLocation programLocation{
                 .program_id = SysFanControlID,
@@ -24,9 +19,7 @@ tsl::elm::Element* MainMenu::createUI()
             };
             u64 pid = 0;
             pmshellLaunchProgram(0, &programLocation, &pid);
-        }
-        else
-        {
+        } else {
             RemoveB2F();
             pmshellTerminateProgram(SysFanControlID);
         }
@@ -34,18 +27,19 @@ tsl::elm::Element* MainMenu::createUI()
     });
     list->addItem(this->_enabledBtn);
 
-    for (int i = 0; i < 5; i++)
-    {
+    const char* labels[5] = {"0°C", "40°C", "45°C", "60°C", "100°C"};
+
+    for (int i = 0; i < 5; i++) {
         TemperaturePoint* p = &this->_fanCurveTable[i];
         
-        std::string headerStr = std::to_string(p->temperature_c) + "\u00B0C";
-        list->addItem(new tsl::elm::CategoryHeader(headerStr));
+        list->addItem(new tsl::elm::CategoryHeader(labels[i]));
 
-        auto slider = new tsl::elm::StepTrackBar("%", 20);
-        slider->setProgress((int)(p->fanLevel_f * 100) / 5);
+        // 50 steps = 2% increments
+        auto slider = new tsl::elm::StepTrackBar("%", 50);
+        slider->setProgress((int)(p->fanLevel_f * 100) / 2);
         
         slider->setValueChangedListener([p](u8 value){
-            p->fanLevel_f = (float)(value * 5) / 100.0f;
+            p->fanLevel_f = (float)(value * 2) / 100.0f;
         });
 
         list->addItem(slider);
@@ -55,12 +49,9 @@ tsl::elm::Element* MainMenu::createUI()
     saveBtn->setClickListener([this](uint64_t keys) {
         if (keys & HidNpadButton_A) {
             WriteConfigFile(this->_fanCurveTable);
-
-            if(IsRunning() != 0)
-            {
+            if(IsRunning() != 0) {
                 pmshellTerminateProgram(SysFanControlID);
-                const NcmProgramLocation programLocation
-                {
+                const NcmProgramLocation programLocation {
                     .program_id = SysFanControlID,
                     .storageID = NcmStorageId_None,
                 };
@@ -77,6 +68,4 @@ tsl::elm::Element* MainMenu::createUI()
     return frame;
 }
 
-void MainMenu::update()
-{
-}
+void MainMenu::update() {}
