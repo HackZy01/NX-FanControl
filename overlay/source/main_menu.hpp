@@ -9,7 +9,7 @@ private:
     bool _tableIsChanged;
 
     tsl::elm::ToggleListItem* _enabledBtn;
-    tsl::elm::StepTrackBar* _masterSlider;
+    tsl::elm::StepTrackBar* _masterSlider; // Added this
 
     tsl::elm::ListItem* _p0Label;
     tsl::elm::ListItem* _p1Label;
