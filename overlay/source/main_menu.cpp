@@ -1,17 +1,18 @@
 #include "main_menu.hpp"
 
-MainMenu::MainMenu() {
+MainMenu::MainMenu()
+{
     ReadConfigFile(&this->_fanCurveTable);
+    this->_enabledBtn = new tsl::elm::ToggleListItem("Enabled", (IsRunning() != 0));
 }
 
-tsl::elm::Element* MainMenu::createUI() {
+tsl::elm::Element* MainMenu::createUI()
+{
     auto frame = new tsl::elm::OverlayFrame("FAN CONTROL", "v1.0.3");
     auto list = new tsl::elm::List();
 
     // 1. Service Toggle
-    bool running = (IsRunning() != 0);
-    auto enabledBtn = new tsl::elm::ToggleListItem("Enabled", running);
-    enabledBtn->setStateChangedListener([](bool state) {
+    this->_enabledBtn->setStateChangedListener([](bool state) {
         if (state) {
             CreateB2F();
             const NcmProgramLocation loc{ .program_id = SysFanControlID, .storageID = NcmStorageId_None };
@@ -23,14 +24,22 @@ tsl::elm::Element* MainMenu::createUI() {
         }
         return true;
     });
-    list->addItem(enabledBtn);
+    list->addItem(this->_enabledBtn);
 
-    const char* temps[5] = {"0C", "40C", "45C", "60C", "100C"};
+    // 2. Sliders
+    // We use simple labels and the slider below it
+    const char* temps[5] = {"0°C", "40°C", "45°C", "60°C", "100°C"};
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++)
+    {
         TemperaturePoint* p = &this->_fanCurveTable[i];
-        
-        auto slider = new tsl::elm::StepTrackBar(temps[i], 50);
+
+        // The requested graphical change: Label is just the Temperature
+        auto label = new tsl::elm::ListItem(temps[i]);
+        list->addItem(label);
+
+        // We use 50 steps for 2% increments
+        auto slider = new tsl::elm::StepTrackBar("", 50);
         slider->setProgress((int)(p->fanLevel_f * 100) / 2);
         
         slider->setValueChangedListener([p](u8 v){
@@ -40,7 +49,7 @@ tsl::elm::Element* MainMenu::createUI() {
         list->addItem(slider);
     }
 
-    // 3. Save Button
+    // 3. Save & Apply
     auto saveBtn = new tsl::elm::ListItem("Save & Apply");
     saveBtn->setClickListener([this](uint64_t keys) {
         if (keys & HidNpadButton_A) {
