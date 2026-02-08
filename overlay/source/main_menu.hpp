@@ -1,4 +1,3 @@
-#pragma once
 #include <tesla.hpp>
 #include <fancontrol.h>
 #include "utils.hpp"
@@ -7,9 +6,11 @@ class MainMenu : public tsl::Gui
 {
 private:
     TemperaturePoint* _fanCurveTable;
-    bool _tableIsChanged = false;
+    bool _tableIsChanged;
 
     tsl::elm::ToggleListItem* _enabledBtn;
+    tsl::elm::StepTrackBar* _masterSlider;
+
     tsl::elm::ListItem* _p0Label;
     tsl::elm::ListItem* _p1Label;
     tsl::elm::ListItem* _p2Label;
@@ -18,6 +19,9 @@ private:
 
 public:
     MainMenu();
+
     virtual tsl::elm::Element* createUI() override;
+
     virtual void update() override;
 };
+}
