@@ -24,8 +24,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo pacman -Syu --noconfirm switch-tools switch-libtesla
-
+          echo test 
+          
       - name: Build project
         run: |
           make all
